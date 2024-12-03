@@ -38,6 +38,7 @@ public class LoanValidator {
             Customer customer = customerService.getCustomer(customerId);
             String username = (String) authentication.getPrincipal();
             if (!customer.getSysUser().getUsername().equals(username)) {
+                LOGGER.warn("Customer id in JWT doesn't match the customer id in the request");
                 throw new UsernameNotFoundException("Invalid user");
             }
         }
@@ -46,6 +47,7 @@ public class LoanValidator {
     public void validateCustomerLimit(Long customerId, BigDecimal amount) throws LimitNotSufficientException{
         Customer customer = customerService.getCustomer(customerId);
         if (customer.getCreditLimit().subtract(customer.getUsedCreditLimit()).compareTo(amount) < 0){
+            LOGGER.warn("Customer(id={}) doesn't have sufficient limit", customerId);
             throw new LimitNotSufficientException("customer ", "", messageSource);
         }
     }

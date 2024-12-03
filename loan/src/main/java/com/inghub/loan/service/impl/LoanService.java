@@ -71,6 +71,7 @@ public class LoanService implements ILoanService {
         Customer customer = customerService.getCustomer(loanDto.getCustomerId());
         loan.setCustomer(customer);
         Loan createdLoan = loanRepository.save(loan);
+        LOGGER.info("Loan is saved with id: {}", createdLoan.getId());
 
         createInstallments(monthlyInstallment, lastInstallment, createdLoan);
         updateCustomerLimit(customer, loanDto.getLoanAmount());
@@ -99,6 +100,10 @@ public class LoanService implements ILoanService {
             loanRepository.save(loan);
             Customer customer = customerService.getCustomer(loanPaymentDto.getLoanId());
             customer.setUsedCreditLimit(customer.getUsedCreditLimit().subtract(loan.getLoanAmount()));
+            customerRepository.save(customer);
+            LOGGER.info("All installments are paid, customer(id={}) now has {} used credit and loan(id={}) " +
+                            "is set to paid" + " status", customer.getId(), customer.getUsedCreditLimit(),
+                    loan.getId());
         }
 
         return new LoanPaymentInfoDto(paidInstallmentList.size(), unpaidInstallmentList.size(), paidAmount,
@@ -154,12 +159,15 @@ public class LoanService implements ILoanService {
             }
         }
         loanInstallmentRepository.saveAll(loanInstallmentList);
+        LOGGER.info("Installments are paid");
         return paidAmount;
     }
 
     private void updateCustomerLimit(Customer customer, BigDecimal loanAmount) {
         customer.setUsedCreditLimit(customer.getUsedCreditLimit().add(loanAmount));
         customerRepository.save(customer);
+        LOGGER.info("Customer with id: {}, limit is changed to {}", customer.getId(),
+                customer.getUsedCreditLimit());
     }
 
     private void createInstallments(BigDecimal monthlyInstallment, BigDecimal lastInstallment, Loan loan) {
@@ -174,6 +182,7 @@ public class LoanService implements ILoanService {
             loanInstallment.setIsPaid(false);
             loanInstallmentRepository.save(loanInstallment);
         }
+        LOGGER.info("Installments are saved for loan id: {}", loan.getId());
     }
 
     private LocalDateTime calculateDueDayByInstallmentCount(Integer installmentCount) {
